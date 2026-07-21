@@ -166,6 +166,15 @@ QPushButton#DangerButton {
 QPushButton#DangerButton:hover {
     background: #ffe9ec;
 }
+QPushButton#RestartButton {
+    color: #1d4ed8;
+    background: #eff6ff;
+    border-color: #bfdbfe;
+}
+QPushButton#RestartButton:hover {
+    background: #dbeafe;
+    border-color: #93c5fd;
+}
 QPushButton#SegmentButton {
     min-height: 36px;
     min-width: 100px;
@@ -234,6 +243,7 @@ class EventBridge(QObject):
 class TaskCard(QFrame):
     stop_requested = pyqtSignal(str)
     start_requested = pyqtSignal(str)
+    restart_requested = pyqtSignal(str)
     change_target_requested = pyqtSignal(str)
     remove_requested = pyqtSignal(str)
 
@@ -282,6 +292,12 @@ class TaskCard(QFrame):
         self.stop_button.setObjectName("DangerButton")
         self.stop_button.clicked.connect(lambda: self.stop_requested.emit(self.task_id))
         actions.addWidget(self.stop_button)
+        self.restart_button = QPushButton("重新运行")
+        self.restart_button.setObjectName("RestartButton")
+        self.restart_button.clicked.connect(
+            lambda: self.restart_requested.emit(self.task_id)
+        )
+        actions.addWidget(self.restart_button)
         self.change_button = QPushButton("更换终端")
         self.change_button.clicked.connect(
             lambda: self.change_target_requested.emit(self.task_id)
@@ -315,6 +331,7 @@ class TaskCard(QFrame):
         self.start_button.setVisible(True)
         self.start_button.setEnabled(True)
         self.stop_button.setVisible(False)
+        self.restart_button.setVisible(False)
         self.change_button.setEnabled(True)
         self.remove_button.setEnabled(True)
 
@@ -323,6 +340,8 @@ class TaskCard(QFrame):
         self.start_button.setVisible(False)
         self.stop_button.setVisible(True)
         self.stop_button.setEnabled(True)
+        self.restart_button.setVisible(True)
+        self.restart_button.setEnabled(True)
         self.change_button.setEnabled(False)
         self.remove_button.setEnabled(False)
         self.metrics_label.setText("已发送 0 次 · 正在等待第一次回车")
@@ -338,6 +357,13 @@ class TaskCard(QFrame):
     def set_stopping(self) -> None:
         self._set_status("正在停止", "StatusIdle")
         self.stop_button.setEnabled(False)
+        self.restart_button.setEnabled(False)
+
+    def set_restarting(self) -> None:
+        self._set_status("正在重启", "StatusIdle")
+        self.stop_button.setEnabled(False)
+        self.restart_button.setVisible(True)
+        self.restart_button.setEnabled(False)
 
     def update_tick(self, event: dict[str, object]) -> None:
         count = int(event.get("count", 0))
@@ -378,9 +404,10 @@ class TaskCard(QFrame):
         self.metrics_label.setText(
             f"已发送 {count} 次" + (f" · {detail}" if detail else "")
         )
-        self.start_button.setVisible(True)
-        self.start_button.setEnabled(reason != "target_closed")
+        self.start_button.setVisible(False)
         self.stop_button.setVisible(False)
+        self.restart_button.setVisible(True)
+        self.restart_button.setEnabled(reason != "target_closed")
         self.change_button.setEnabled(True)
         self.remove_button.setEnabled(True)
         if self.config.stop_rule == "manual":
@@ -396,6 +423,7 @@ class TaskRuntime:
     generation: int = 0
     state: str = "ready"
     count: int = 0
+    restart_pending: bool = False
 
 
 class MainWindow(QMainWindow):
@@ -826,6 +854,7 @@ class MainWindow(QMainWindow):
         card = TaskCard(task_id, config)
         card.stop_requested.connect(self._stop_task)
         card.start_requested.connect(self._start_task)
+        card.restart_requested.connect(self._restart_task)
         card.change_target_requested.connect(self._change_task_target)
         card.remove_requested.connect(self._remove_task)
         runtime = TaskRuntime(config=config, card=card, stop_event=threading.Event())
@@ -862,6 +891,7 @@ class MainWindow(QMainWindow):
         runtime.stop_event = threading.Event()
         runtime.state = "running"
         runtime.count = 0
+        runtime.restart_pending = False
         runtime.card.set_running()
         self._log(f"任务启动：{runtime.config.target.title}")
         self._refresh_task_summary()
@@ -883,13 +913,36 @@ class MainWindow(QMainWindow):
 
     def _stop_task(self, task_id: str) -> None:
         runtime = self.tasks.get(task_id)
-        if runtime is None or runtime.state != "running":
+        if runtime is None:
+            return
+        if runtime.state == "stopping" and runtime.restart_pending:
+            runtime.restart_pending = False
+            runtime.card.set_stopping()
+            self._log(f"已取消重启：{runtime.config.target.title}")
+            return
+        if runtime.state != "running":
             return
         runtime.state = "stopping"
+        runtime.restart_pending = False
         runtime.card.set_stopping()
         runtime.stop_event.set()
         self._log(f"正在停止：{runtime.config.target.title}")
         self._refresh_task_summary()
+
+    def _restart_task(self, task_id: str) -> None:
+        runtime = self.tasks.get(task_id)
+        if runtime is None:
+            return
+        if runtime.state in {"running", "stopping"}:
+            runtime.restart_pending = True
+            runtime.state = "stopping"
+            runtime.card.set_restarting()
+            runtime.stop_event.set()
+            self._log(f"正在重启：{runtime.config.target.title}")
+            self._refresh_task_summary()
+            return
+        runtime.restart_pending = False
+        self._start_task(task_id)
 
     def _stop_all(self) -> None:
         for task_id in list(self.tasks):
@@ -964,6 +1017,11 @@ class MainWindow(QMainWindow):
         self._log(
             f"任务结束：{runtime.config.target.title} · {reason} · 共 {runtime.count} 次"
         )
+        if runtime.restart_pending:
+            runtime.restart_pending = False
+            self._log(f"按原配置重新运行：{runtime.config.target.title}")
+            self._start_task(task_id)
+            return
         self._refresh_task_summary()
 
     def _refresh_task_summary(self) -> None:
@@ -989,6 +1047,7 @@ class MainWindow(QMainWindow):
                 event.ignore()
                 return
             for runtime in self.tasks.values():
+                runtime.restart_pending = False
                 runtime.stop_event.set()
         event.accept()
 
