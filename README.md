@@ -1,11 +1,11 @@
 # 解放单手（自用版）
 
-“解放单手”是一个多终端并行自动回车控制台。每个任务都绑定一把独立的目标锁：只有你手工选择终端时，任务的目标才会改变。任务启动后，你可以继续使用鼠标点击其他终端、浏览器或编辑器。
+“解放单手”是一个适用于 Codex、Claude Code 等终端 AI Agent 的多终端并行自动回车控制台。每个任务都绑定一把独立的目标锁：只有你手工选择终端时，任务的目标才会改变。任务启动后，你可以继续使用鼠标点击其他终端、浏览器或编辑器。
 
 ## 核心功能
 
 - 手工点击终端，锁定固定窗口；
-- Herdr 中可直接从 Pane 列表选择 Codex，通过 Herdr 官方 API 定向发送；
+- Herdr 中可直接从 Pane 列表选择 Codex、Claude Code 或普通 Pane，通过 Herdr 官方 API 定向发送；
 - 多个终端同时运行不同的自动回车任务；
 - 第一次回车前等待一个完整时间间隔；
 - 支持按一次或循环发送；
@@ -77,9 +77,9 @@ HANDSFREE_PYTHON=/路径/到/python ./一键启动.sh
 
 普通使用只需要根目录的“一键启动”文件，其余实现文件已经分类收纳。
 
-## Herdr 使用
+## Herdr 中使用 Codex 或 Claude Code
 
-Herdr 内的 Codex 运行在 Herdr 管理的独立伪终端中，不应当选择外层 GNOME Terminal 窗口。启动工具后点击“选择 Herdr Codex / Pane”，从列表中选择具体 Pane。回车会通过 `herdr pane send-keys <pane> enter` 直接送到该 Pane，不要求 Herdr 或目标 Pane 位于前台。
+Herdr 内的 Codex 和 Claude Code 都运行在 Herdr 管理的独立伪终端中，不应当选择外层 GNOME Terminal 窗口。启动工具后点击“选择 Herdr AI Agent / Pane”，从列表中选择具体 Pane。程序会优先显示规范化的 `Codex` 或 `Claude Code` 名称；回车通过 `herdr pane send-keys <pane> enter` 直接送到该 Pane，不要求 Herdr 或目标 Pane 位于前台。
 
 普通终端仍然使用“点击选择普通终端窗口”。程序会把误选到的内部控件自动提升为所属主窗口，减少嵌入式终端无法接收按键的问题。
 
@@ -112,7 +112,7 @@ Windows Terminal 等采用特殊输入架构的终端可能拒绝后台 Win32 �
 
 ## 使用流程
 
-1. Herdr 用户点击“选择 Herdr Codex / Pane”；普通终端用户点击“选择普通终端窗口”。
+1. Herdr 用户点击“选择 Herdr AI Agent / Pane”；普通终端用户点击“选择普通终端窗口”。
 2. 设置按一次/循环、间隔、次数或持续时间。
 3. 点击“添加并启动任务”。任务会出现在右侧并获得独立保护锁。
 4. 左侧设置会保留，目标会清空；继续选择第二个终端即可并行添加。
@@ -136,4 +136,4 @@ Windows：右键使用 PowerShell 运行 `scripts/build/打包独立版.ps1`。
 
 ## 安全提醒
 
-自动回车会确认目标终端当时显示的内容。建议每个目标窗口只运行 Codex，不要留下尚未执行的半条命令，也不要把自动回车用于自动批准需要人工判断的危险操作。
+自动回车会确认目标终端当时显示的内容。建议每个目标窗口只运行 Codex 或 Claude Code，不要留下尚未执行的半条命令，也不要把自动回车用于自动批准需要人工判断的危险操作。

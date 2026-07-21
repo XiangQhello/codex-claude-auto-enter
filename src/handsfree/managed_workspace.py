@@ -8,7 +8,7 @@ from typing import Callable
 
 
 class ManagedWorkspaceProvider:
-    display_name = "Herdr Codex / Pane"
+    display_name = "Herdr AI Agent / Pane"
     capability = "普通终端使用 X11 后台发送；Herdr Pane 使用官方 API 定向发送"
     wayland_capability = "Wayland 下通过 Herdr 官方 API 定向发送回车"
     works_without_window_injection = True
@@ -50,6 +50,21 @@ class ManagedWorkspaceProvider:
     def handles(self, target) -> bool:
         return target.metadata.get("transport") == "herdr"
 
+    @staticmethod
+    def _agent_name(pane: dict) -> str:
+        raw_agent = str(pane.get("agent") or "").strip()
+        candidates = " ".join(
+            str(pane.get(key) or "")
+            for key in ("agent", "process_name", "terminal_title_stripped", "label")
+        ).lower()
+        if raw_agent.lower() == "codex" or "codex" in candidates:
+            return "Codex"
+        if raw_agent.lower() in {"claude", "claude-code", "claude code"} or (
+            "claude" in candidates
+        ):
+            return "Claude Code"
+        return raw_agent or "终端"
+
     def list_targets(self, target_factory: Callable) -> list:
         payload = self._run("pane", "list")
         panes = payload.get("result", {}).get("panes", [])
@@ -68,7 +83,7 @@ class ManagedWorkspaceProvider:
                 or short_cwd
                 or pane_id
             ).strip()
-            agent = str(pane.get("agent") or "终端").strip()
+            agent = self._agent_name(pane)
             status = str(pane.get("agent_status") or "unknown").strip()
             focus_mark = "当前 · " if pane.get("focused") else ""
             targets.append(

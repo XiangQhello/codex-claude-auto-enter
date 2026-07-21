@@ -58,6 +58,8 @@ TERMINAL_MARKERS = (
     "powershell",
     "cmd.exe",
     "iterm",
+    "codex",
+    "claude",
 )
 EDITION = (Path(__file__).resolve().parents[1] / "EDITION").read_text(
     encoding="utf-8"

@@ -47,8 +47,53 @@ class ManagedWorkspaceTests(unittest.TestCase):
         self.assertEqual(len(targets), 1)
         self.assertEqual(targets[0].key, "herdr:w1:p7")
         self.assertEqual(targets[0].metadata["pane_id"], "w1:p7")
+        self.assertIn("Codex", targets[0].title)
         self.assertEqual(targets[0].metadata["focused"], "true")
         self.assertIn("简单任务", targets[0].title)
+
+    def test_recognizes_claude_code_from_agent(self) -> None:
+        provider = ManagedWorkspaceProvider("/fake/herdr")
+        provider._run = Mock(
+            return_value={
+                "result": {
+                    "panes": [
+                        {
+                            "pane_id": "w2:p3",
+                            "label": "review",
+                            "agent": "claude",
+                            "agent_status": "working",
+                            "cwd": "/workspace/project",
+                        }
+                    ]
+                }
+            }
+        )
+
+        targets = provider.list_targets(TargetInfo)
+
+        self.assertIn("Claude Code", targets[0].title)
+        self.assertEqual(targets[0].metadata["agent"], "Claude Code")
+
+    def test_recognizes_claude_code_from_title_without_agent_field(self) -> None:
+        provider = ManagedWorkspaceProvider("/fake/herdr")
+        provider._run = Mock(
+            return_value={
+                "result": {
+                    "panes": [
+                        {
+                            "pane_id": "w2:p4",
+                            "terminal_title_stripped": "Claude Code",
+                            "agent_status": "idle",
+                            "cwd": "/workspace/project",
+                        }
+                    ]
+                }
+            }
+        )
+
+        targets = provider.list_targets(TargetInfo)
+
+        self.assertIn("Claude Code", targets[0].title)
 
     def test_sends_enter_through_provider(self) -> None:
         provider = ManagedWorkspaceProvider("/fake/herdr")
