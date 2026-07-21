@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from PyQt5.QtWidgets import QApplication
 
-from app import MainWindow, TaskCard, TaskRuntime
+from app import MainWindow, TaskCard, TaskRuntime, TaskSettingsDialog
 from handsfree.backends import BaseBackend, TargetInfo
 from handsfree.scheduler import TaskConfig
 
@@ -97,6 +97,55 @@ class RestartTaskTests(unittest.TestCase):
         self.assertFalse(self.card.restart_button.isHidden())
         self.assertTrue(self.card.restart_button.isEnabled())
         self.assertTrue(self.card.start_button.isHidden())
+
+    def test_edit_stopped_task_keeps_target_and_updates_schedule(self) -> None:
+        self.runtime.state = "completed"
+        updated = TaskConfig(
+            TargetInfo("other", "其他终端", "test", "不应替换原目标"),
+            interval_seconds=2.5,
+            mode="repeat",
+            stop_rule="duration",
+            max_duration_seconds=120,
+        )
+
+        self.window._apply_task_config("task-1", updated)
+
+        self.assertEqual(self.runtime.config.target, self.target)
+        self.assertEqual(self.runtime.config.interval_seconds, 2.5)
+        self.assertEqual(self.runtime.config.max_duration_seconds, 120)
+        self.assertEqual(self.runtime.state, "ready")
+        self.assertIn("持续 2 分钟", self.card.schedule_label.text())
+        self.assertFalse(self.card.restart_button.isHidden())
+
+    def test_edit_running_task_restarts_with_new_config(self) -> None:
+        self.runtime.state = "running"
+        self.window._restart_task = Mock()
+        updated = TaskConfig(
+            self.target,
+            interval_seconds=3,
+            mode="repeat",
+            stop_rule="count",
+            max_count=8,
+        )
+
+        self.window._apply_task_config("task-1", updated)
+
+        self.assertEqual(self.runtime.config.max_count, 8)
+        self.assertIn("共 8 次", self.card.schedule_label.text())
+        self.window._restart_task.assert_called_once_with("task-1")
+
+    def test_settings_dialog_builds_once_config(self) -> None:
+        dialog = TaskSettingsDialog(self.config)
+        dialog.mode_combo.setCurrentIndex(dialog.mode_combo.findData("once"))
+        dialog.interval_spin.setValue(4)
+        dialog.interval_unit.setCurrentText("秒")
+
+        updated = dialog.task_config()
+
+        self.assertEqual(updated.target, self.target)
+        self.assertEqual(updated.interval_seconds, 4)
+        self.assertEqual(updated.mode, "once")
+        self.assertEqual(updated.max_count, 1)
 
 
 if __name__ == "__main__":

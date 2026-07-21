@@ -14,8 +14,11 @@ from PyQt5.QtWidgets import (
     QApplication,
     QButtonGroup,
     QComboBox,
+    QDialog,
+    QDialogButtonBox,
     QDoubleSpinBox,
     QFrame,
+    QFormLayout,
     QGridLayout,
     QHBoxLayout,
     QInputDialog,
@@ -64,6 +67,10 @@ EDITION_LABEL = "自用版" if EDITION == "personal" else "分享版"
 
 APP_STYLE = """
 QMainWindow, QWidget#Root {
+    background: #f4f7fb;
+    color: #172033;
+}
+QDialog {
     background: #f4f7fb;
     color: #172033;
 }
@@ -240,10 +247,174 @@ class EventBridge(QObject):
     task_event = pyqtSignal(str, int, dict)
 
 
+def split_duration(seconds: float) -> tuple[float, str]:
+    for unit in ("小时", "分钟"):
+        value = seconds / UNIT_FACTORS[unit]
+        if value >= 0.5 and abs(value * 10 - round(value * 10)) < 1e-6:
+            return value, unit
+    return seconds, "秒"
+
+
+class TaskSettingsDialog(QDialog):
+    def __init__(self, config: TaskConfig, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.original_config = config
+        self.setWindowTitle("修改任务设置")
+        self.setMinimumWidth(430)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(22, 20, 22, 18)
+        layout.setSpacing(14)
+
+        title = QLabel("修改任务设置")
+        title.setObjectName("SectionTitle")
+        layout.addWidget(title)
+        target = QLabel(f"目标保持不变：{config.target.title}")
+        target.setObjectName("Muted")
+        target.setWordWrap(True)
+        layout.addWidget(target)
+
+        form = QFormLayout()
+        form.setHorizontalSpacing(14)
+        form.setVerticalSpacing(12)
+
+        self.mode_combo = QComboBox()
+        self.mode_combo.addItem("按一次", "once")
+        self.mode_combo.addItem("循环发送", "repeat")
+        self.mode_combo.setCurrentIndex(0 if config.mode == "once" else 1)
+        form.addRow("发送方式", self.mode_combo)
+
+        interval_row = QHBoxLayout()
+        self.interval_spin = QDoubleSpinBox()
+        self.interval_spin.setRange(0.5, 1_000_000)
+        self.interval_spin.setDecimals(1)
+        interval_value, interval_unit = split_duration(config.interval_seconds)
+        self.interval_spin.setValue(interval_value)
+        interval_row.addWidget(self.interval_spin, 1)
+        self.interval_unit = QComboBox()
+        self.interval_unit.addItems(list(UNIT_FACTORS))
+        self.interval_unit.setCurrentText(interval_unit)
+        interval_row.addWidget(self.interval_unit)
+        form.addRow("发送间隔", interval_row)
+
+        self.stop_combo = QComboBox()
+        self.stop_combo.addItem("一直运行，手动停止", "manual")
+        self.stop_combo.addItem("达到总次数后停止", "count")
+        self.stop_combo.addItem("达到总时长后停止", "duration")
+        stop_index = max(0, self.stop_combo.findData(config.stop_rule))
+        self.stop_combo.setCurrentIndex(stop_index)
+        form.addRow("停止方式", self.stop_combo)
+
+        self.count_spin = QSpinBox()
+        self.count_spin.setRange(1, 1_000_000)
+        self.count_spin.setValue(config.max_count or 10)
+        self.count_spin.setSuffix(" 次")
+        form.addRow("总次数", self.count_spin)
+
+        duration_row = QHBoxLayout()
+        self.duration_spin = QDoubleSpinBox()
+        self.duration_spin.setRange(0.5, 1_000_000)
+        self.duration_spin.setDecimals(1)
+        duration_value, duration_unit = split_duration(
+            config.max_duration_seconds or 600
+        )
+        self.duration_spin.setValue(duration_value)
+        duration_row.addWidget(self.duration_spin, 1)
+        self.duration_unit = QComboBox()
+        self.duration_unit.addItems(list(UNIT_FACTORS))
+        self.duration_unit.setCurrentText(duration_unit)
+        duration_row.addWidget(self.duration_unit)
+        form.addRow("总时长", duration_row)
+        layout.addLayout(form)
+
+        hint = QLabel("保存后仍绑定当前终端；运行中的任务会自动安全重启以应用新设置。")
+        hint.setObjectName("Muted")
+        hint.setWordWrap(True)
+        layout.addWidget(hint)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        buttons.button(QDialogButtonBox.Save).setText("保存设置")
+        buttons.button(QDialogButtonBox.Cancel).setText("取消")
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+        self.mode_combo.currentIndexChanged.connect(self._refresh_state)
+        self.stop_combo.currentIndexChanged.connect(self._refresh_state)
+        self._refresh_state()
+
+    def _refresh_state(self) -> None:
+        repeat = self.mode_combo.currentData() == "repeat"
+        stop_rule = self.stop_combo.currentData()
+        self.stop_combo.setEnabled(repeat)
+        self.count_spin.setEnabled(repeat and stop_rule == "count")
+        duration_enabled = repeat and stop_rule == "duration"
+        self.duration_spin.setEnabled(duration_enabled)
+        self.duration_unit.setEnabled(duration_enabled)
+
+    def task_config(self) -> TaskConfig:
+        interval = self.interval_spin.value() * UNIT_FACTORS[
+            self.interval_unit.currentText()
+        ]
+        mode = str(self.mode_combo.currentData())
+        if mode == "once":
+            return replace(
+                self.original_config,
+                interval_seconds=interval,
+                mode="once",
+                stop_rule="count",
+                max_count=1,
+                max_duration_seconds=None,
+            )
+
+        stop_rule = str(self.stop_combo.currentData())
+        if stop_rule == "manual":
+            return replace(
+                self.original_config,
+                interval_seconds=interval,
+                mode="repeat",
+                stop_rule="manual",
+                max_count=None,
+                max_duration_seconds=None,
+            )
+        if stop_rule == "count":
+            return replace(
+                self.original_config,
+                interval_seconds=interval,
+                mode="repeat",
+                stop_rule="count",
+                max_count=self.count_spin.value(),
+                max_duration_seconds=None,
+            )
+
+        duration = self.duration_spin.value() * UNIT_FACTORS[
+            self.duration_unit.currentText()
+        ]
+        if duration < interval:
+            raise BackendError("总时长不能短于发送间隔，否则一次回车也不会发送。")
+        return replace(
+            self.original_config,
+            interval_seconds=interval,
+            mode="repeat",
+            stop_rule="duration",
+            max_count=None,
+            max_duration_seconds=duration,
+        )
+
+    def accept(self) -> None:
+        try:
+            self.task_config()
+        except BackendError as exc:
+            QMessageBox.warning(self, "设置无效", str(exc))
+            return
+        super().accept()
+
+
 class TaskCard(QFrame):
     stop_requested = pyqtSignal(str)
     start_requested = pyqtSignal(str)
     restart_requested = pyqtSignal(str)
+    edit_requested = pyqtSignal(str)
     change_target_requested = pyqtSignal(str)
     remove_requested = pyqtSignal(str)
 
@@ -298,6 +469,9 @@ class TaskCard(QFrame):
             lambda: self.restart_requested.emit(self.task_id)
         )
         actions.addWidget(self.restart_button)
+        self.edit_button = QPushButton("修改设置")
+        self.edit_button.clicked.connect(lambda: self.edit_requested.emit(self.task_id))
+        actions.addWidget(self.edit_button)
         self.change_button = QPushButton("更换终端")
         self.change_button.clicked.connect(
             lambda: self.change_target_requested.emit(self.task_id)
@@ -326,12 +500,28 @@ class TaskCard(QFrame):
         self.progress.setValue(0)
         self.set_ready("目标已更换")
 
+    def update_schedule(self, config: TaskConfig) -> None:
+        self.config = config
+        self.schedule_label.setText(describe_task(config))
+        self.metrics_label.setText("已发送 0 次 · 新设置将在下次运行时生效")
+        self.progress.setRange(0, 1)
+        self.progress.setValue(0)
+        self._set_status("设置已更新", "StatusIdle")
+        self.start_button.setVisible(False)
+        self.stop_button.setVisible(False)
+        self.restart_button.setVisible(True)
+        self.restart_button.setEnabled(True)
+        self.edit_button.setEnabled(True)
+        self.change_button.setEnabled(True)
+        self.remove_button.setEnabled(True)
+
     def set_ready(self, status: str = "已停止") -> None:
         self._set_status(status, "StatusIdle")
         self.start_button.setVisible(True)
         self.start_button.setEnabled(True)
         self.stop_button.setVisible(False)
         self.restart_button.setVisible(False)
+        self.edit_button.setEnabled(True)
         self.change_button.setEnabled(True)
         self.remove_button.setEnabled(True)
 
@@ -342,6 +532,7 @@ class TaskCard(QFrame):
         self.stop_button.setEnabled(True)
         self.restart_button.setVisible(True)
         self.restart_button.setEnabled(True)
+        self.edit_button.setEnabled(True)
         self.change_button.setEnabled(False)
         self.remove_button.setEnabled(False)
         self.metrics_label.setText("已发送 0 次 · 正在等待第一次回车")
@@ -358,12 +549,14 @@ class TaskCard(QFrame):
         self._set_status("正在停止", "StatusIdle")
         self.stop_button.setEnabled(False)
         self.restart_button.setEnabled(False)
+        self.edit_button.setEnabled(False)
 
     def set_restarting(self) -> None:
         self._set_status("正在重启", "StatusIdle")
         self.stop_button.setEnabled(False)
         self.restart_button.setVisible(True)
         self.restart_button.setEnabled(False)
+        self.edit_button.setEnabled(False)
 
     def update_tick(self, event: dict[str, object]) -> None:
         count = int(event.get("count", 0))
@@ -408,6 +601,7 @@ class TaskCard(QFrame):
         self.stop_button.setVisible(False)
         self.restart_button.setVisible(True)
         self.restart_button.setEnabled(reason != "target_closed")
+        self.edit_button.setEnabled(True)
         self.change_button.setEnabled(True)
         self.remove_button.setEnabled(True)
         if self.config.stop_rule == "manual":
@@ -855,6 +1049,7 @@ class MainWindow(QMainWindow):
         card.stop_requested.connect(self._stop_task)
         card.start_requested.connect(self._start_task)
         card.restart_requested.connect(self._restart_task)
+        card.edit_requested.connect(self._edit_task)
         card.change_target_requested.connect(self._change_task_target)
         card.remove_requested.connect(self._remove_task)
         runtime = TaskRuntime(config=config, card=card, stop_event=threading.Event())
@@ -943,6 +1138,34 @@ class MainWindow(QMainWindow):
             return
         runtime.restart_pending = False
         self._start_task(task_id)
+
+    def _edit_task(self, task_id: str) -> None:
+        runtime = self.tasks.get(task_id)
+        if runtime is None or runtime.state == "stopping":
+            return
+        dialog = TaskSettingsDialog(runtime.config, self)
+        if dialog.exec_() != QDialog.Accepted:
+            return
+        self._apply_task_config(task_id, dialog.task_config())
+
+    def _apply_task_config(self, task_id: str, config: TaskConfig) -> None:
+        runtime = self.tasks.get(task_id)
+        if runtime is None:
+            return
+        config = replace(config, target=runtime.config.target)
+        was_running = runtime.state == "running"
+        runtime.config = config
+        runtime.count = 0
+        self._log(f"任务设置已更新：{runtime.config.target.title} · {describe_task(config)}")
+        if was_running:
+            runtime.card.config = config
+            runtime.card.schedule_label.setText(describe_task(config))
+            self._restart_task(task_id)
+            return
+        runtime.state = "ready"
+        runtime.restart_pending = False
+        runtime.card.update_schedule(config)
+        self._refresh_task_summary()
 
     def _stop_all(self) -> None:
         for task_id in list(self.tasks):
