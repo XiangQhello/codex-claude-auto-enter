@@ -1,0 +1,3 @@
+PyQt5>=5.15.10,<5.16
+pyobjc-framework-Quartz>=10.0; sys_platform == "darwin"
+
