@@ -8,7 +8,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from handsfree.backends import TargetInfo
+from handsfree.backends import BackendError, TargetInfo
 from handsfree.scheduler import TaskConfig, run_schedule
 
 
@@ -48,6 +48,53 @@ class SchedulerTests(unittest.TestCase):
         run_schedule(config, stop_event, send_once, events.append)
         self.assertEqual(events[-1]["reason"], "stopped")
         self.assertEqual(events[-1]["count"], 1)
+
+    def test_agent_completion_stops_without_sending_enter(self) -> None:
+        sends: list[str] = []
+        events: list[dict[str, object]] = []
+        config = TaskConfig(
+            self.target_a,
+            interval_seconds=0.005,
+            mode="repeat",
+            stop_rule="agent",
+        )
+
+        run_schedule(
+            config,
+            threading.Event(),
+            lambda target: sends.append(target.key),
+            events.append,
+            completion_check=lambda: True,
+        )
+
+        self.assertEqual(sends, [])
+        self.assertEqual(events[-1]["reason"], "agent_completed")
+        self.assertEqual(events[-1]["count"], 0)
+
+    def test_agent_status_failure_stops_without_sending_enter(self) -> None:
+        sends: list[str] = []
+        events: list[dict[str, object]] = []
+        config = TaskConfig(
+            self.target_a,
+            interval_seconds=0.005,
+            mode="repeat",
+            stop_rule="agent",
+        )
+
+        def unavailable() -> bool:
+            raise BackendError("Herdr unavailable")
+
+        run_schedule(
+            config,
+            threading.Event(),
+            lambda target: sends.append(target.key),
+            events.append,
+            completion_check=unavailable,
+        )
+
+        self.assertEqual(sends, [])
+        self.assertEqual(events[-1]["reason"], "error")
+        self.assertIn("状态监控失败", str(events[-1]["detail"]))
 
     def test_two_targets_run_in_parallel(self) -> None:
         sent: list[tuple[str, float]] = []

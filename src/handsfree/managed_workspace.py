@@ -120,6 +120,31 @@ class ManagedWorkspaceProvider:
             return False
         return True
 
+    def target_status(self, target) -> str | None:
+        """Return Herdr's live agent status."""
+        pane_id = target.metadata.get("pane_id", "")
+        if not pane_id:
+            raise RuntimeError("Herdr 目标缺少 Pane ID。")
+        payload = self._run("pane", "get", pane_id)
+        result = payload.get("result", {})
+        if not isinstance(result, dict):
+            raise RuntimeError("Herdr 没有返回有效的 Pane 状态。")
+        pane = result.get("pane", {})
+        if not isinstance(pane, dict):
+            raise RuntimeError("Herdr 没有返回有效的 Pane 状态。")
+        status = str(pane.get("agent_status") or "").strip().lower()
+        return status or None
+
+    def target_is_idle(self, target) -> bool:
+        # Herdr uses blocked for questions/approval prompts. Those still need Enter;
+        # idle is the terminal state after the current agent turn has completed.
+        status = self.target_status(target)
+        if status == "idle":
+            return True
+        if status in {"working", "blocked"}:
+            return False
+        raise RuntimeError(f"无法确认 AI 任务状态（{status or 'unknown'}）。")
+
     def send_enter(self, target) -> None:
         pane_id = target.metadata.get("pane_id", "")
         if not pane_id:

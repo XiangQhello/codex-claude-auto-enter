@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -111,6 +111,43 @@ class ManagedWorkspaceTests(unittest.TestCase):
         provider._run.assert_called_once_with(
             "pane", "send-keys", "w1:p7", "enter"
         )
+
+    def test_reads_live_agent_status(self) -> None:
+        provider = ManagedWorkspaceProvider("/fake/herdr")
+        provider._run = Mock(
+            return_value={"result": {"pane": {"agent_status": "idle"}}}
+        )
+        target = TargetInfo(
+            key="herdr:w1:p7",
+            title="Codex",
+            platform_name="Herdr",
+            detail="Herdr Pane w1:p7",
+            metadata={"transport": "herdr", "pane_id": "w1:p7"},
+        )
+
+        self.assertEqual(provider.target_status(target), "idle")
+        self.assertTrue(provider.target_is_idle(target))
+        self.assertEqual(
+            provider._run.call_args_list,
+            [
+                call("pane", "get", "w1:p7"),
+                call("pane", "get", "w1:p7"),
+            ],
+        )
+
+    def test_status_probe_failure_is_fail_closed(self) -> None:
+        provider = ManagedWorkspaceProvider("/fake/herdr")
+        provider._run = Mock(side_effect=RuntimeError("temporarily unavailable"))
+        target = TargetInfo(
+            key="herdr:w1:p7",
+            title="Codex",
+            platform_name="Herdr",
+            detail="Herdr Pane w1:p7",
+            metadata={"transport": "herdr", "pane_id": "w1:p7"},
+        )
+
+        with self.assertRaises(RuntimeError):
+            provider.target_is_idle(target)
 
 
 if __name__ == "__main__":

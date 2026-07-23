@@ -147,6 +147,37 @@ class RestartTaskTests(unittest.TestCase):
         self.assertEqual(updated.mode, "once")
         self.assertEqual(updated.max_count, 1)
 
+    def test_settings_dialog_builds_agent_completion_config(self) -> None:
+        dialog = TaskSettingsDialog(self.config, auto_stop_available=True)
+        dialog.stop_combo.setCurrentIndex(dialog.stop_combo.findData("agent"))
+
+        updated = dialog.task_config()
+
+        self.assertEqual(updated.stop_rule, "agent")
+        self.assertIsNone(updated.max_count)
+        self.assertIsNone(updated.max_duration_seconds)
+
+    def test_agent_completed_card_is_safe_to_restart(self) -> None:
+        config = TaskConfig(
+            self.target,
+            interval_seconds=1,
+            mode="repeat",
+            stop_rule="agent",
+        )
+        card = TaskCard("agent-task", config)
+
+        card.finish("agent_completed", 2)
+
+        self.assertEqual(card.status_label.text(), "AI 已完成")
+        self.assertTrue(card.restart_button.isEnabled())
+
+    def test_global_agent_poll_interval_is_editable(self) -> None:
+        self.assertEqual(self.window.agent_poll_interval_seconds, 1.0)
+
+        self.window.agent_poll_interval_spin.setValue(2.5)
+
+        self.assertEqual(self.window.agent_poll_interval_seconds, 2.5)
+
 
 if __name__ == "__main__":
     unittest.main()
