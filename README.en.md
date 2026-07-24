@@ -29,14 +29,7 @@ Hands-Free Enter pins every task to a stable target. With Herdr, it reads `worki
 
 ## Quick start
 
-On Linux, install [Herdr](https://herdr.dev/docs/install/) first for precise targeting and completion detection:
-
-```bash
-curl -fsSL https://herdr.dev/install.sh | sh
-herdr
-```
-
-Then launch Hands-Free Enter:
+You can try regular terminal mode immediately without installing Herdr:
 
 ```bash
 git clone https://github.com/XiangQhello/codex-claude-auto-enter.git
@@ -45,11 +38,30 @@ chmod +x start.sh
 ./start.sh
 ```
 
+After launch, select a regular terminal window and stop by count, duration, or manually.
+
+For precise Codex / Claude Code pane targeting and automatic stop on completion, install the recommended [Herdr](https://herdr.dev/docs/install/):
+
+```bash
+curl -fsSL https://herdr.dev/install.sh | sh
+herdr
+```
+
 The launcher reuses a compatible Python/Conda environment or creates a local `.venv`. Override it with `HANDSFREE_PYTHON=/path/to/python ./start.sh`.
 
 Double-click `start.command` on macOS or `start.bat` on Windows.
 
 ## Workflow
+
+### Regular terminal mode
+
+1. Select a regular terminal window.
+2. Configure the Enter interval and a count, duration, or manual stop rule.
+3. Add and start the task.
+
+This mode requires no Herdr and is the fastest way to try the application, but it cannot inspect agent completion state.
+
+### Herdr mode (recommended)
 
 1. Start Codex or Claude Code in Herdr.
 2. Select the exact Herdr AI Agent / Pane.
@@ -57,7 +69,7 @@ Double-click `start.command` on macOS or `start.bat` on Windows.
 4. Select automatic stop when the AI task completes.
 5. Add and start the task.
 
-Herdr is recommended, not required. Regular terminal mode still supports manual, count, and duration limits, but cannot inspect agent completion state.
+Herdr adds reliable pane-directed input and automatic stop on completion, but is not required to run the application.
 
 ## Highlights
 
