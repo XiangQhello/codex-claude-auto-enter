@@ -6,7 +6,7 @@
 
 - 启动入口统一为英文文件名：`start.sh`、`start.command`、`start.bat`。
 - 精简双语 README，并将维护文档收纳到 `docs/`。
-- 新增可直接在 GitHub README 播放的轻量 GIF Demo，保留 MP4 下载。
+- 新增工具与模拟终端同屏的 GIF/MP4 Demo，展示定向 Enter 和 `idle` 后自动停止。
 
 ## 1.5.0 — 2026-07-24
 

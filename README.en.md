@@ -21,11 +21,11 @@ Hands-Free Enter pins every task to a stable target. With Herdr, it reads `worki
 
 ## Demo
 
-![Select a Herdr Codex pane and stop automatically on idle](assets/demo.gif)
+![The controller on the left targets a Herdr Codex pane while the terminal on the right shows working, blocked, and automatic stop on idle](assets/demo.gif)
 
-[Download the full MP4](https://github.com/XiangQhello/codex-claude-auto-enter/releases/download/v1.5.0/demo.mp4) · [Rebuild the demo](scripts/demo/record_demo.py)
+[Open the full MP4](https://raw.githubusercontent.com/XiangQhello/codex-claude-auto-enter/main/assets/demo.mp4) · [Rebuild the demo](scripts/demo/record_demo.py)
 
-> GitHub does not reliably play repository MP4 files inline, so the homepage uses a lightweight GIF preview. The original MP4 remains available in the Release.
+> The controller is shown on the left and a simulated Herdr Codex terminal on the right. GitHub does not reliably play MP4 files inside a README, so the homepage uses a lightweight GIF preview. The link above opens the current MP4 from `main` directly.
 
 ## Quick start
 

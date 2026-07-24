@@ -21,11 +21,11 @@ Hands-Free Enter 将任务固定到具体窗口或 Herdr Pane。配合 Herdr 时
 
 ## Demo
 
-![选择 Herdr Codex Pane，并在 idle 后自动停止](assets/demo.gif)
+![左侧控制台锁定 Herdr Codex Pane，右侧终端展示 working、blocked 与 idle 后自动停止](assets/demo.gif)
 
-[下载高清 MP4](https://github.com/XiangQhello/codex-claude-auto-enter/releases/download/v1.5.0/demo.mp4) · [查看可重复录制脚本](scripts/demo/record_demo.py)
+[打开高清 MP4](https://raw.githubusercontent.com/XiangQhello/codex-claude-auto-enter/main/assets/demo.mp4) · [查看可重复录制脚本](scripts/demo/record_demo.py)
 
-> GitHub 不会稳定地内嵌播放仓库中的 MP4，因此主页使用轻量 GIF 预览；MP4 文件本身仍保留在 Release 中。
+> Demo 左侧是 Hands-Free Enter，右侧是模拟的 Herdr Codex 终端。GitHub 不会稳定地在 README 内嵌播放 MP4，因此主页使用轻量 GIF 预览；上方链接会直接打开当前 `main` 的 MP4。
 
 ## 快速开始
 
