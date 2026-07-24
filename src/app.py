@@ -6,7 +6,6 @@ import threading
 import uuid
 from dataclasses import dataclass, replace
 from datetime import datetime
-from pathlib import Path
 
 from PyQt5.QtCore import QObject, QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QColor, QFont, QFontDatabase, QIcon, QPainter, QPixmap
@@ -61,10 +60,7 @@ TERMINAL_MARKERS = (
     "codex",
     "claude",
 )
-EDITION = (Path(__file__).resolve().parents[1] / "EDITION").read_text(
-    encoding="utf-8"
-).strip()
-EDITION_LABEL = "自用版" if EDITION == "personal" else "分享版"
+INTEGRATION_LABEL = "Herdr 增强版"
 
 
 APP_STYLE = """
@@ -107,7 +103,7 @@ QLabel#LockBadge {
     padding: 4px 9px;
     font-weight: 600;
 }
-QLabel#PlatformBadge, QLabel#EditionBadge {
+QLabel#PlatformBadge, QLabel#IntegrationBadge {
     color: #0f6b50;
     background: #e6f8f1;
     border: 1px solid #b9e8d7;
@@ -663,7 +659,7 @@ class MainWindow(QMainWindow):
         self.bridge = EventBridge()
         self.bridge.task_event.connect(self._handle_task_event)
 
-        self.setWindowTitle(f"解放单手 · {EDITION_LABEL}")
+        self.setWindowTitle(f"解放单手 · {INTEGRATION_LABEL}")
         self.setWindowIcon(make_app_icon())
         self.resize(1200, 850)
         self.setMinimumSize(1040, 720)
@@ -702,9 +698,9 @@ class MainWindow(QMainWindow):
         title_block.addWidget(title)
         title_block.addWidget(subtitle)
         header.addLayout(title_block, 1)
-        edition_badge = QLabel(EDITION_LABEL)
-        edition_badge.setObjectName("EditionBadge")
-        header.addWidget(edition_badge, 0, Qt.AlignTop)
+        integration_badge = QLabel(INTEGRATION_LABEL)
+        integration_badge.setObjectName("IntegrationBadge")
+        header.addWidget(integration_badge, 0, Qt.AlignTop)
         platform_badge = QLabel(self.backend.platform_name)
         platform_badge.setObjectName("PlatformBadge")
         header.addWidget(platform_badge, 0, Qt.AlignTop)
