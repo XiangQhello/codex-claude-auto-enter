@@ -29,7 +29,18 @@ Hands-Free Enter pins every task to a stable target. With Herdr, it reads `worki
 
 ## Quick start
 
-You can try regular terminal mode immediately without installing Herdr:
+Install the stable Herdr release on Linux or macOS using its [official installation guide](https://herdr.dev/docs/install/):
+
+Herdr is optional: launch the app and select a regular terminal window to use it immediately. In this application, only Herdr mode can detect agent state and stop automatically when a turn completes.
+
+Herdr itself supports stable Linux and macOS releases plus a [Windows beta](https://herdr.dev/docs/windows-beta/). Hands-Free Enter currently enables Herdr state integration only on Linux; regular terminal mode remains available on macOS and Windows.
+
+```bash
+curl -fsSL https://herdr.dev/install.sh | sh
+herdr
+```
+
+Then launch Hands-Free Enter:
 
 ```bash
 git clone https://github.com/XiangQhello/codex-claude-auto-enter.git
@@ -38,30 +49,11 @@ chmod +x start.sh
 ./start.sh
 ```
 
-After launch, select a regular terminal window and stop by count, duration, or manually.
-
-For precise Codex / Claude Code pane targeting and automatic stop on completion, install the recommended [Herdr](https://herdr.dev/docs/install/):
-
-```bash
-curl -fsSL https://herdr.dev/install.sh | sh
-herdr
-```
-
 The launcher reuses a compatible Python/Conda environment or creates a local `.venv`. Override it with `HANDSFREE_PYTHON=/path/to/python ./start.sh`.
 
 Double-click `start.command` on macOS or `start.bat` on Windows.
 
 ## Workflow
-
-### Regular terminal mode
-
-1. Select a regular terminal window.
-2. Configure the Enter interval and a count, duration, or manual stop rule.
-3. Add and start the task.
-
-This mode requires no Herdr and is the fastest way to try the application, but it cannot inspect agent completion state.
-
-### Herdr mode (recommended)
 
 1. Start Codex or Claude Code in Herdr.
 2. Select the exact Herdr AI Agent / Pane.
@@ -69,7 +61,7 @@ This mode requires no Herdr and is the fastest way to try the application, but i
 4. Select automatic stop when the AI task completes.
 5. Add and start the task.
 
-Herdr adds reliable pane-directed input and automatic stop on completion, but is not required to run the application.
+Herdr is recommended, not required. Regular terminal mode still supports manual, count, and duration limits, but cannot inspect agent completion state.
 
 ## Highlights
 
@@ -80,13 +72,13 @@ Herdr adds reliable pane-directed input and automatic stop on completion, but is
 - Stable target locking instead of active-window input
 - Linux, macOS, and Windows launch scripts
 
-| Platform | Herdr input | Regular terminal background input |
+| Platform | Herdr input in this app | Regular terminal background input |
 |---|---|---|
 | Linux + Herdr | Supported, including Wayland | X11 only |
 | Linux X11/Xorg | Optional | Supported |
 | Linux Wayland | Supported | Not supported |
-| Windows | Not integrated yet | Experimental |
-| macOS | Not integrated yet | Experimental |
+| macOS | Not integrated yet (Herdr stable upstream) | Experimental |
+| Windows | Not integrated yet (Herdr beta upstream) | Experimental |
 
 ## Documentation
 

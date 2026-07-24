@@ -12,7 +12,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from PyQt5.QtWidgets import QApplication
 
-from app import MainWindow, TaskCard, TaskRuntime, TaskSettingsDialog
+from app import (
+    AGENT_STATUS_NOTICE,
+    MainWindow,
+    TaskCard,
+    TaskRuntime,
+    TaskSettingsDialog,
+)
 from handsfree.backends import BaseBackend, TargetInfo
 from handsfree.scheduler import TaskConfig
 
@@ -177,6 +183,13 @@ class RestartTaskTests(unittest.TestCase):
         self.window.agent_poll_interval_spin.setValue(2.5)
 
         self.assertEqual(self.window.agent_poll_interval_seconds, 2.5)
+
+    def test_agent_status_limit_is_visible_in_main_window_and_settings(self) -> None:
+        self.assertEqual(self.window.agent_capability_hint.text(), AGENT_STATUS_NOTICE)
+
+        dialog = TaskSettingsDialog(self.config)
+
+        self.assertEqual(dialog.agent_capability_hint.text(), AGENT_STATUS_NOTICE)
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@
 - 启动入口统一为英文文件名：`start.sh`、`start.command`、`start.bat`。
 - 精简双语 README，并将维护文档收纳到 `docs/`。
 - 新增工具与模拟终端同屏的 GIF/MP4 Demo，展示定向 Enter 和 `idle` 后自动停止。
+- 区分 Herdr 官方平台支持与本工具当前的 Linux Herdr 集成，并在 APP 内显示状态识别边界。
 
 ## 1.5.0 — 2026-07-24
 

@@ -29,22 +29,24 @@ Hands-Free Enter 将任务固定到具体窗口或 Herdr Pane。配合 Herdr 时
 
 ## 快速开始
 
-无需安装 Herdr，也可以先用普通终端模式快速体验：
+Linux / macOS 可按[官方安装文档](https://herdr.dev/docs/install/)安装 Herdr 稳定版：
+
+不安装 Herdr 也能使用：直接启动后选择“普通终端窗口”即可；但在本工具中，只有 Herdr 模式能识别 Agent 状态并在完成后自动停止。
+
+Herdr 本身支持 Linux、macOS 稳定版和 [Windows Beta](https://herdr.dev/docs/windows-beta/)；Hands-Free Enter 当前仅在 Linux 接入 Herdr 状态识别，macOS / Windows 仍可使用普通终端模式。
+
+```bash
+curl -fsSL https://herdr.dev/install.sh | sh
+herdr
+```
+
+然后启动 Hands-Free Enter：
 
 ```bash
 git clone https://github.com/XiangQhello/codex-claude-auto-enter.git
 cd codex-claude-auto-enter
 chmod +x start.sh
 ./start.sh
-```
-
-启动后点击“选择普通终端窗口”，即可按次数、时长或手动停止规则发送 Enter。
-
-需要精确锁定 Codex / Claude Code Pane，并在任务完成后自动停止时，再安装推荐的 [Herdr](https://herdr.dev/docs/install/)：
-
-```bash
-curl -fsSL https://herdr.dev/install.sh | sh
-herdr
 ```
 
 启动器会优先复用带 PyQt5 的 Python/Conda 环境，否则创建本地 `.venv`。也可以指定解释器：
@@ -57,23 +59,13 @@ macOS 双击 `start.command`；Windows 双击 `start.bat`。
 
 ## 使用方式
 
-### 普通终端模式
-
-1. 点击“选择普通终端窗口”，再点击目标终端。
-2. 设置 Enter 间隔以及次数、时长或手动停止条件。
-3. 添加并启动任务。
-
-普通终端模式无需 Herdr，可以快速体验；但它无法读取 Agent 完成状态。
-
-### Herdr 模式（推荐）
-
 1. 在 Herdr 中启动 Codex 或 Claude Code。
 2. 点击“选择 Herdr AI Agent / Pane”，锁定具体 Pane。
 3. 选择循环发送并设置 Enter 间隔。
 4. 停止条件选择“AI 任务完成后自动停止（推荐）”。
 5. 添加并启动任务。
 
-Herdr 提供更可靠的 Pane 定向发送与任务完成自动停止，但不是运行本工具的强制依赖。
+Herdr 不是强制依赖。普通终端模式仍支持手动停止、总次数和总时长，但无法读取 Agent 完成状态。
 
 ## 核心能力
 
@@ -84,13 +76,13 @@ Herdr 提供更可靠的 Pane 定向发送与任务完成自动停止，但不�
 - 固定目标，避免跟随当前活动窗口误发；
 - Linux、macOS、Windows 启动脚本。
 
-| 平台 | Herdr 定向发送 | 普通终端后台发送 |
+| 平台 | 本工具的 Herdr 定向发送 | 普通终端后台发送 |
 |---|---|---|
 | Linux + Herdr | 支持，含 Wayland | X11 支持 |
 | Linux X11/Xorg | 可选 | 支持 |
 | Linux Wayland | 支持 | 不支持 |
-| Windows | 尚未接入 | 实验支持 |
-| macOS | 尚未接入 | 实验支持 |
+| macOS | 尚未接入（Herdr 官方稳定支持） | 实验支持 |
+| Windows | 尚未接入（Herdr 官方 Beta） | 实验支持 |
 
 ## 文档
 

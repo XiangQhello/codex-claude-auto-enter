@@ -61,6 +61,10 @@ TERMINAL_MARKERS = (
     "claude",
 )
 INTEGRATION_LABEL = "Herdr 增强版"
+AGENT_STATUS_NOTICE = (
+    "普通终端不能识别 Agent 状态；目前只有 Linux 上的 Herdr Codex / "
+    "Claude Code Pane 支持状态识别与完成后自动停止。"
+)
 
 
 APP_STYLE = """
@@ -84,6 +88,13 @@ QLabel#AppTitle {
 }
 QLabel#AppSubtitle, QLabel#Muted, QLabel#TaskDetail {
     color: #6b7890;
+}
+QLabel#CapabilityNotice {
+    color: #1e3a8a;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 7px 9px;
 }
 QLabel#SectionTitle {
     color: #1b2b48;
@@ -316,6 +327,10 @@ class TaskSettingsDialog(QDialog):
         stop_index = max(0, self.stop_combo.findData(config.stop_rule))
         self.stop_combo.setCurrentIndex(stop_index)
         form.addRow("停止方式", self.stop_combo)
+        self.agent_capability_hint = QLabel(AGENT_STATUS_NOTICE)
+        self.agent_capability_hint.setObjectName("CapabilityNotice")
+        self.agent_capability_hint.setWordWrap(True)
+        form.addRow("", self.agent_capability_hint)
 
         self.count_spin = QSpinBox()
         self.count_spin.setRange(1, 1_000_000)
@@ -755,6 +770,10 @@ class MainWindow(QMainWindow):
             getattr(self.backend, "window_selection_available", True)
         )
         target_layout.addWidget(self.select_target_button)
+        self.agent_capability_hint = QLabel(AGENT_STATUS_NOTICE)
+        self.agent_capability_hint.setObjectName("CapabilityNotice")
+        self.agent_capability_hint.setWordWrap(True)
+        target_layout.addWidget(self.agent_capability_hint)
         editor.addWidget(target_box)
 
         mode_label = QLabel("执行模式")
