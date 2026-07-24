@@ -1,0 +1,41 @@
+name: Bug report
+description: 报告可复现的功能问题
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: 安全问题请使用 Security 页面私密报告，不要在公开 Issue 中提交凭据或终端隐私内容。
+  - type: input
+    id: version
+    attributes:
+      label: 解放单手版本
+      placeholder: 例如 1.4.1 或 Git commit
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 环境
+      placeholder: 操作系统、X11/Wayland、终端、Herdr 版本
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 请使用不含凭据和私人终端内容的最小示例。
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+    validations:
+      required: true

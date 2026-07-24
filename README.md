@@ -1,8 +1,34 @@
 # 解放单手
 
+<p align="right">
+  <strong>简体中文</strong> · <a href="README.en.md">English</a>
+</p>
+
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Tests](https://github.com/XiangQhello/codex-claude-auto-enter/actions/workflows/tests.yml/badge.svg)](https://github.com/XiangQhello/codex-claude-auto-enter/actions/workflows/tests.yml)
+
 “解放单手”是一个面向 Codex、Claude Code 等终端 AI Agent 的多任务自动回车控制台。它可以给每个任务锁定独立目标、按指定间隔发送 Enter，并在 Herdr 报告 AI 任务完成后自动停止，避免任务结束后继续发送回车而误提交正在输入的内容。
 
 本仓库只维护一个版本：包含 Herdr 定向发送与状态监控能力的完整版本。普通终端窗口仍可使用，但在 Linux 上配合 [Herdr](https://herdr.dev/) 能获得更可靠的定向发送和自动停止体验。
+
+关键词：Codex auto Enter、Claude Code automation、Herdr Pane、AI Agent terminal automation、任务完成自动停止。
+
+## 它解决什么痛点
+
+传统自动回车工具只能预设次数或持续时间，但 AI Agent 的完成时间并不固定：
+
+- 设置太短，Codex 仍在工作时自动回车已经停止；
+- 设置太长，Codex 已经完成，工具却继续发送 Enter；
+- 此时如果你开始输入下一条命令，半条命令可能被自动提交；
+- 同时运行多个 Agent 时，活动窗口方案还可能把 Enter 发到错误终端。
+
+“解放单手”把发送目标固定到具体窗口或 Herdr Pane。使用 Herdr 时，它还会读取结构化的 Agent 状态，在本轮任务变为 `idle` 后自动停止，不再依赖猜测任务需要多少分钟或多少次回车。
+
+## Demo
+
+[![解放单手 Demo：选择 Herdr Codex Pane，并在 idle 后自动停止](assets/demo-thumbnail.png)](assets/demo.mp4)
+
+点击图片播放 MP4。演示使用仓库内置的模拟 Herdr 后端录制，不包含真实桌面、终端内容或凭据。可以运行 `python scripts/demo/record_demo.py` 重新生成。
 
 ## 为什么推荐配合 Herdr
 
@@ -42,8 +68,8 @@ herdr
 然后安装“解放单手”：
 
 ```bash
-git clone https://github.com/XiangQhello/handsfree-enter.git
-cd handsfree-enter
+git clone https://github.com/XiangQhello/codex-claude-auto-enter.git
+cd codex-claude-auto-enter
 chmod +x 一键启动.sh
 ./一键启动.sh
 ```
@@ -110,6 +136,8 @@ Windows Terminal 等特殊输入架构可能拒绝后台 Win32 消息；macOS �
 python -m unittest discover -s tests -v
 ```
 
+提交改动前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。安全问题请按 [SECURITY.md](SECURITY.md) 私下报告；版本变化记录在 [CHANGELOG.md](CHANGELOG.md)，依赖与上游归属见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
 目录结构：
 
 ```text
@@ -119,7 +147,11 @@ python -m unittest discover -s tests -v
 │   └── handsfree/managed_workspace.py  Herdr CLI/API 集成
 ├── scripts/install/                 安装脚本
 ├── scripts/build/                   打包脚本
+├── scripts/demo/                    可重复的离屏 Demo 录制脚本
+├── assets/                          Demo 视频与缩略图
 ├── tests/                           自动测试
+├── LICENSE                          GPL-3.0-only 许可证
+├── README.en.md                     英文说明
 ├── requirements.txt                 Python 依赖
 ├── VERSION                          版本号
 └── README.md                        使用说明
@@ -132,6 +164,10 @@ python -m unittest discover -s tests -v
 ```
 
 输出文件为上一级目录中的 `解放单手-版本号.zip`。生成无需 Python 的独立版本时，Linux/macOS 运行 `./scripts/build/打包独立版.sh`，Windows 使用 `scripts/build/打包独立版.ps1`。
+
+## 许可证
+
+本项目采用 [GNU General Public License v3.0](LICENSE)，SPDX 标识为 `GPL-3.0-only`。这是为了与 PyQt5 的 GPL v3 开源许可保持兼容。分发修改版或包含本项目的程序时，请遵守 GPLv3 的源码公开和许可证保留要求。
 
 ## Herdr 引用与第三方说明
 

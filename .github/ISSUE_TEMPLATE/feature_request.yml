@@ -1,0 +1,25 @@
+name: Feature request
+description: 提议新的工作流或平台能力
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 需要解决的痛点
+      description: 请先描述问题，而不只是描述希望添加的按钮。
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: 目标锁定和安全影响
+      description: 这个方案是否可能把 Enter 发送到错误目标或跳过人工判断？
+    validations:
+      required: true
