@@ -6,12 +6,7 @@ BUILD_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd -- "$BUILD_DIR/../.." && pwd)"
 PARENT_DIR="$(dirname -- "$ROOT_DIR")"
 VERSION="$(tr -d '[:space:]' < "$ROOT_DIR/VERSION")"
-EDITION="$(tr -d '[:space:]' < "$ROOT_DIR/EDITION")"
-if [[ "$EDITION" == "share" ]]; then
-    OUTPUT="$PARENT_DIR/解放单手-分享版-$VERSION.zip"
-else
-    OUTPUT="$PARENT_DIR/解放单手-自用版-$VERSION.zip"
-fi
+OUTPUT="$PARENT_DIR/解放单手-$VERSION.zip"
 STAGING_DIR="$(mktemp -d)"
 PACKAGE_DIR="$STAGING_DIR/解放单手"
 

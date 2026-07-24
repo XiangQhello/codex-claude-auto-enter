@@ -8,6 +8,7 @@ import sys
 import threading
 import time
 from dataclasses import dataclass, field
+from typing import Callable
 
 try:
     from .managed_workspace import create_managed_target_provider
@@ -49,6 +50,12 @@ class BaseBackend:
 
     def send_enter(self, target: TargetInfo) -> None:
         raise NotImplementedError
+
+    def supports_completion_monitoring(self, target: TargetInfo) -> bool:
+        return False
+
+    def completion_check(self, target: TargetInfo) -> Callable[[], bool] | None:
+        return None
 
     def list_managed_targets(self) -> list[TargetInfo]:
         return []
@@ -236,6 +243,25 @@ class LinuxX11Backend(BaseBackend):
         if self.managed_provider and self.managed_provider.handles(target):
             return self.managed_provider.target_exists(target)
         return self._window_exists_by_id(target.metadata.get("window_id", target.key))
+
+    def supports_completion_monitoring(self, target: TargetInfo) -> bool:
+        if not self.managed_provider or not self.managed_provider.handles(target):
+            return False
+        agent = target.metadata.get("agent", "").strip().lower()
+        return agent in {"codex", "claude", "claude-code", "claude code"}
+
+    def completion_check(self, target: TargetInfo) -> Callable[[], bool] | None:
+        if not self.supports_completion_monitoring(target):
+            return None
+        assert self.managed_provider is not None
+
+        def check() -> bool:
+            try:
+                return self.managed_provider.target_is_idle(target)
+            except RuntimeError as exc:
+                raise BackendError(str(exc)) from exc
+
+        return check
 
     def _safe_window_id(self, command: str) -> str:
         value = self._run(command, check=False)

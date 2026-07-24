@@ -20,12 +20,16 @@ class TaskConfig:
 
 EventCallback = Callable[[dict[str, object]], None]
 SendCallback = Callable[[TargetInfo], None]
+CompletionCheck = Callable[[], bool]
+CompletionCheckInterval = Callable[[], float]
 
 
 def describe_task(config: TaskConfig) -> str:
     interval = format_duration(config.interval_seconds)
     if config.mode == "once":
         return f"等待 {interval}后按一次"
+    if config.stop_rule == "agent":
+        return f"每 {interval}一次 · AI 任务完成后停止"
     if config.stop_rule == "manual":
         return f"每 {interval}一次 · 手动停止"
     if config.stop_rule == "count":
@@ -48,6 +52,8 @@ def run_schedule(
     stop_event: threading.Event,
     send_enter: SendCallback,
     emit: EventCallback,
+    completion_check: CompletionCheck | None = None,
+    completion_check_interval: CompletionCheckInterval | None = None,
 ) -> None:
     started = time.monotonic()
     next_due = started + config.interval_seconds
@@ -57,7 +63,40 @@ def run_schedule(
         else None
     )
     count = 0
+    # Herdr 状态查询是跨进程调用，不需要在调度器的 100ms 唤醒频率下重复执行。
+    # 间隔由界面中的全局设置提供；发送按键前仍会强制再检查一次。
+    last_completion_check: float | None = None
     emit({"kind": "started", "count": 0})
+
+    def current_completion_check_interval() -> float:
+        value = completion_check_interval() if completion_check_interval else 1.0
+        return min(10.0, max(0.5, float(value)))
+
+    def completion_requires_stop() -> bool:
+        if completion_check is None:
+            return False
+        try:
+            completed = completion_check()
+        except BackendError as exc:
+            emit(
+                {
+                    "kind": "finished",
+                    "reason": "error",
+                    "count": count,
+                    "detail": f"AI 状态监控失败：{exc}",
+                }
+            )
+            return True
+        if not completed:
+            return False
+        emit(
+            {
+                "kind": "finished",
+                "reason": "agent_completed",
+                "count": count,
+            }
+        )
+        return True
 
     while True:
         if stop_event.is_set():
@@ -65,6 +104,13 @@ def run_schedule(
             return
 
         now = time.monotonic()
+        if completion_check is not None and (
+            last_completion_check is None
+            or now - last_completion_check >= current_completion_check_interval()
+        ):
+            last_completion_check = now
+            if completion_requires_stop():
+                return
         if deadline is not None and now >= deadline and next_due > deadline:
             emit({"kind": "finished", "reason": "duration", "count": count})
             return
@@ -96,6 +142,13 @@ def run_schedule(
             return
         if now < next_due:
             continue
+
+        # 即使上一轮状态探测刚刚发生，真正注入按键前仍再确认一次，尽量缩小
+        # “刚检查还是 working、下一瞬间已经 idle”造成的误发送窗口。
+        if completion_check is not None:
+            last_completion_check = now
+            if completion_requires_stop():
+                return
 
         try:
             send_enter(config.target)
@@ -135,4 +188,3 @@ def run_schedule(
             emit({"kind": "finished", "reason": "duration", "count": count})
             return
         next_due = now + config.interval_seconds
-

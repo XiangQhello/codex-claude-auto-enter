@@ -6,7 +6,6 @@ import threading
 import uuid
 from dataclasses import dataclass, replace
 from datetime import datetime
-from pathlib import Path
 
 from PyQt5.QtCore import QObject, QTimer, Qt, pyqtSignal
 from PyQt5.QtGui import QColor, QFont, QFontDatabase, QIcon, QPainter, QPixmap
@@ -61,10 +60,7 @@ TERMINAL_MARKERS = (
     "codex",
     "claude",
 )
-EDITION = (Path(__file__).resolve().parents[1] / "EDITION").read_text(
-    encoding="utf-8"
-).strip()
-EDITION_LABEL = "自用版" if EDITION == "personal" else "分享版"
+INTEGRATION_LABEL = "Herdr 增强版"
 
 
 APP_STYLE = """
@@ -107,7 +103,7 @@ QLabel#LockBadge {
     padding: 4px 9px;
     font-weight: 600;
 }
-QLabel#PlatformBadge, QLabel#EditionBadge {
+QLabel#PlatformBadge, QLabel#IntegrationBadge {
     color: #0f6b50;
     background: #e6f8f1;
     border: 1px solid #b9e8d7;
@@ -258,9 +254,15 @@ def split_duration(seconds: float) -> tuple[float, str]:
 
 
 class TaskSettingsDialog(QDialog):
-    def __init__(self, config: TaskConfig, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        config: TaskConfig,
+        parent: QWidget | None = None,
+        auto_stop_available: bool = False,
+    ) -> None:
         super().__init__(parent)
         self.original_config = config
+        self.auto_stop_available = auto_stop_available
         self.setWindowTitle("修改任务设置")
         self.setMinimumWidth(430)
 
@@ -303,6 +305,14 @@ class TaskSettingsDialog(QDialog):
         self.stop_combo.addItem("一直运行，手动停止", "manual")
         self.stop_combo.addItem("达到总次数后停止", "count")
         self.stop_combo.addItem("达到总时长后停止", "duration")
+        self.stop_combo.addItem("AI 任务完成后自动停止（推荐）", "agent")
+        agent_index = self.stop_combo.findData("agent")
+        self.stop_combo.model().item(agent_index).setEnabled(auto_stop_available)
+        self.stop_combo.setItemData(
+            agent_index,
+            "仅支持 Herdr 中的 Codex / Claude Code Pane",
+            Qt.ToolTipRole,
+        )
         stop_index = max(0, self.stop_combo.findData(config.stop_rule))
         self.stop_combo.setCurrentIndex(stop_index)
         form.addRow("停止方式", self.stop_combo)
@@ -386,6 +396,18 @@ class TaskSettingsDialog(QDialog):
                 mode="repeat",
                 stop_rule="count",
                 max_count=self.count_spin.value(),
+                max_duration_seconds=None,
+            )
+
+        if stop_rule == "agent":
+            if not self.auto_stop_available:
+                raise BackendError("当前终端不支持 AI 任务状态监控。")
+            return replace(
+                self.original_config,
+                interval_seconds=interval,
+                mode="repeat",
+                stop_rule="agent",
+                max_count=None,
                 max_duration_seconds=None,
             )
 
@@ -540,6 +562,8 @@ class TaskCard(QFrame):
         self.metrics_label.setText("已发送 0 次 · 正在等待第一次回车")
         if self.config.stop_rule == "manual":
             self.progress.setRange(0, 0)
+        elif self.config.stop_rule == "agent":
+            self.progress.setRange(0, 0)
         elif self.config.stop_rule == "duration":
             self.progress.setRange(0, 1000)
             self.progress.setValue(0)
@@ -586,6 +610,9 @@ class TaskCard(QFrame):
         if reason == "completed":
             status = "已完成"
             object_name = "StatusRunning"
+        elif reason == "agent_completed":
+            status = "AI 已完成"
+            object_name = "StatusRunning"
         elif reason == "duration":
             status = "时间已到"
             object_name = "StatusRunning"
@@ -606,7 +633,7 @@ class TaskCard(QFrame):
         self.edit_button.setEnabled(True)
         self.change_button.setEnabled(True)
         self.remove_button.setEnabled(True)
-        if self.config.stop_rule == "manual":
+        if self.config.stop_rule in {"manual", "agent"}:
             self.progress.setRange(0, 1)
             self.progress.setValue(1 if count else 0)
 
@@ -627,11 +654,12 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.backend = backend
         self.editor_target: TargetInfo | None = None
+        self.agent_poll_interval_seconds = 1.0
         self.tasks: dict[str, TaskRuntime] = {}
         self.bridge = EventBridge()
         self.bridge.task_event.connect(self._handle_task_event)
 
-        self.setWindowTitle(f"解放单手 · {EDITION_LABEL}")
+        self.setWindowTitle(f"解放单手 · {INTEGRATION_LABEL}")
         self.setWindowIcon(make_app_icon())
         self.resize(1200, 850)
         self.setMinimumSize(1040, 720)
@@ -670,9 +698,9 @@ class MainWindow(QMainWindow):
         title_block.addWidget(title)
         title_block.addWidget(subtitle)
         header.addLayout(title_block, 1)
-        edition_badge = QLabel(EDITION_LABEL)
-        edition_badge.setObjectName("EditionBadge")
-        header.addWidget(edition_badge, 0, Qt.AlignTop)
+        integration_badge = QLabel(INTEGRATION_LABEL)
+        integration_badge.setObjectName("IntegrationBadge")
+        header.addWidget(integration_badge, 0, Qt.AlignTop)
         platform_badge = QLabel(self.backend.platform_name)
         platform_badge.setObjectName("PlatformBadge")
         header.addWidget(platform_badge, 0, Qt.AlignTop)
@@ -777,15 +805,21 @@ class MainWindow(QMainWindow):
         stop_layout.addWidget(stop_title)
         self.stop_group = QButtonGroup(self)
         self.manual_radio = QRadioButton("一直运行，手动停止")
+        self.agent_radio = QRadioButton("AI 任务完成后自动停止（推荐）")
+        self.agent_radio.setToolTip("仅支持 Herdr 中的 Codex / Claude Code Pane")
         self.count_radio = QRadioButton("达到总次数后停止")
         self.duration_radio = QRadioButton("达到总时长后停止")
         self.manual_radio.setChecked(True)
-        self.stop_group.addButton(self.manual_radio)
-        self.stop_group.addButton(self.count_radio)
-        self.stop_group.addButton(self.duration_radio)
-        for radio in (self.manual_radio, self.count_radio, self.duration_radio):
+        for radio in (
+            self.manual_radio,
+            self.agent_radio,
+            self.count_radio,
+            self.duration_radio,
+        ):
+            self.stop_group.addButton(radio)
             radio.toggled.connect(self._refresh_editor_state)
         stop_layout.addWidget(self.manual_radio)
+        stop_layout.addWidget(self.agent_radio)
 
         self.count_controls = QWidget()
         count_row = QHBoxLayout(self.count_controls)
@@ -820,6 +854,29 @@ class MainWindow(QMainWindow):
         duration_row.addWidget(self.duration_unit)
         stop_layout.addWidget(self.duration_controls)
         editor.addWidget(self.stop_options)
+
+        monitor_label = QLabel("AI 状态检查间隔（全局）")
+        monitor_label.setObjectName("TargetTitle")
+        editor.addWidget(monitor_label)
+        monitor_row = QHBoxLayout()
+        self.agent_poll_interval_spin = QDoubleSpinBox()
+        self.agent_poll_interval_spin.setRange(0.5, 10.0)
+        self.agent_poll_interval_spin.setDecimals(1)
+        self.agent_poll_interval_spin.setSingleStep(0.5)
+        self.agent_poll_interval_spin.setSuffix(" 秒")
+        self.agent_poll_interval_spin.setValue(self.agent_poll_interval_seconds)
+        self.agent_poll_interval_spin.valueChanged.connect(
+            self._update_agent_poll_interval
+        )
+        monitor_row.addWidget(self.agent_poll_interval_spin)
+        monitor_row.addStretch(1)
+        editor.addLayout(monitor_row)
+        monitor_hint = QLabel(
+            "仅控制 Herdr Pane 状态查询；修改后对运行中的 AI 自动停止任务生效。"
+        )
+        monitor_hint.setObjectName("Muted")
+        monitor_hint.setWordWrap(True)
+        editor.addWidget(monitor_hint)
 
         editor.addStretch(1)
         self.add_task_button = QPushButton("添加并启动任务")
@@ -884,8 +941,22 @@ class MainWindow(QMainWindow):
         now = datetime.now().strftime("%H:%M:%S")
         self.log_box.appendPlainText(f"[{now}] {text}")
 
+    def _update_agent_poll_interval(self, value: float) -> None:
+        self.agent_poll_interval_seconds = float(value)
+
     def _refresh_editor_state(self) -> None:
         repeat = self.repeat_button.isChecked()
+        auto_stop_available = bool(
+            self.editor_target is not None
+            and self.backend.supports_completion_monitoring(self.editor_target)
+        )
+        self.agent_radio.setEnabled(repeat and auto_stop_available)
+        if (
+            self.agent_radio.isChecked()
+            and self.editor_target is not None
+            and not auto_stop_available
+        ):
+            self.manual_radio.setChecked(True)
         self.stop_options.setVisible(repeat)
         self.count_spin.setEnabled(repeat and self.count_radio.isChecked())
         duration_enabled = repeat and self.duration_radio.isChecked()
@@ -1003,6 +1074,15 @@ class MainWindow(QMainWindow):
                 mode="repeat",
                 stop_rule="manual",
             )
+        if self.agent_radio.isChecked():
+            if not self.backend.supports_completion_monitoring(self.editor_target):
+                raise BackendError("当前终端不支持 AI 任务状态监控。")
+            return TaskConfig(
+                target=self.editor_target,
+                interval_seconds=interval,
+                mode="repeat",
+                stop_rule="agent",
+            )
         if self.count_radio.isChecked():
             return TaskConfig(
                 target=self.editor_target,
@@ -1093,6 +1173,18 @@ class MainWindow(QMainWindow):
         self._log(f"任务启动：{runtime.config.target.title}")
         self._refresh_task_summary()
 
+        completion_check = (
+            self.backend.completion_check(runtime.config.target)
+            if runtime.config.stop_rule == "agent"
+            else None
+        )
+        if runtime.config.stop_rule == "agent" and completion_check is None:
+            runtime.state = "error"
+            runtime.card.finish("error", 0, "当前终端不支持 AI 任务状态监控")
+            self._log(f"任务无法启动：{runtime.config.target.title} · 不支持状态监控")
+            self._refresh_task_summary()
+            return
+
         thread = threading.Thread(
             target=run_schedule,
             args=(
@@ -1102,6 +1194,8 @@ class MainWindow(QMainWindow):
                 lambda event, tid=task_id, gen=generation: self.bridge.task_event.emit(
                     tid, gen, event
                 ),
+                completion_check,
+                lambda: self.agent_poll_interval_seconds,
             ),
             name=f"handsfree-{task_id}",
             daemon=True,
@@ -1145,7 +1239,13 @@ class MainWindow(QMainWindow):
         runtime = self.tasks.get(task_id)
         if runtime is None or runtime.state == "stopping":
             return
-        dialog = TaskSettingsDialog(runtime.config, self)
+        dialog = TaskSettingsDialog(
+            runtime.config,
+            self,
+            auto_stop_available=self.backend.supports_completion_monitoring(
+                runtime.config.target
+            ),
+        )
         if dialog.exec_() != QDialog.Accepted:
             return
         self._apply_task_config(task_id, dialog.task_config())
