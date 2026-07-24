@@ -163,6 +163,27 @@ def main() -> int:
             ],
             check=True,
         )
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-loglevel",
+                "error",
+                "-i",
+                str(assets_dir / "demo.mp4"),
+                "-filter_complex",
+                (
+                    "fps=10,scale=800:-1:flags=lanczos,split[gif_src][palette_src];"
+                    "[palette_src]palettegen=stats_mode=diff[palette];"
+                    "[gif_src][palette]paletteuse=dither=bayer:"
+                    "bayer_scale=3:diff_mode=rectangle"
+                ),
+                "-loop",
+                "0",
+                str(assets_dir / "demo.gif"),
+            ],
+            check=True,
+        )
 
     window.close()
     return 0

@@ -1,4 +1,4 @@
-# Contributing
+# 贡献指南 / Contributing
 
 感谢你改进“解放单手”。提交 Issue 或 Pull Request 前，请先确认问题仍能在最新 `main` 复现。
 

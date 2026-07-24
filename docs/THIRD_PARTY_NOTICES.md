@@ -1,4 +1,4 @@
-# Third-Party Notices
+# 第三方声明 / Third-Party Notices
 
 本仓库不复制或修改以下上游项目的源码。运行时依赖和外部工具继续适用各自的许可证、商标与使用条款。
 

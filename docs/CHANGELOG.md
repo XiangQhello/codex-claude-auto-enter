@@ -1,6 +1,12 @@
-# Changelog
+# 更新记录 / Changelog
 
 本项目使用语义化版本号，版本标签格式为 `vX.Y.Z`。
+
+## Unreleased
+
+- 启动入口统一为英文文件名：`start.sh`、`start.command`、`start.bat`。
+- 精简双语 README，并将维护文档收纳到 `docs/`。
+- 新增可直接在 GitHub README 播放的轻量 GIF Demo，保留 MP4 下载。
 
 ## 1.5.0 — 2026-07-24
 
