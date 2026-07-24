@@ -70,14 +70,14 @@ herdr
 ```bash
 git clone https://github.com/XiangQhello/codex-claude-auto-enter.git
 cd codex-claude-auto-enter
-chmod +x 一键启动.sh
-./一键启动.sh
+chmod +x start.sh
+./start.sh
 ```
 
 启动器会优先复用当前带有 PyQt5 的 Conda/Python 环境；找不到兼容环境时，才会创建一次本地 `.venv`。也可以显式指定解释器：
 
 ```bash
-HANDSFREE_PYTHON=/路径/到/python ./一键启动.sh
+HANDSFREE_PYTHON=/路径/到/python ./start.sh
 ```
 
 首次运行需要能够在 `PATH` 中找到 `herdr`。程序也会检查 `~/.local/bin/herdr`。
@@ -112,11 +112,11 @@ HANDSFREE_PYTHON=/路径/到/python ./一键启动.sh
 
 ### macOS
 
-在 Finder 中双击“一键启动.command”。首次发送前，需要在“系统设置 → 隐私与安全性 → 辅助功能”中授权。
+在 Finder 中双击 `start.command`。首次发送前，需要在“系统设置 → 隐私与安全性 → 辅助功能”中授权。
 
 ### Windows
 
-双击“一键启动.bat”。电脑需要 Python 3；安装程序会创建本地环境和桌面快捷方式。
+双击 `start.bat`。电脑需要 Python 3；安装程序会创建本地环境和桌面快捷方式。
 
 ## 平台能力
 
@@ -142,7 +142,7 @@ python -m unittest discover -s tests -v
 
 ```text
 解放单手/
-├── 一键启动.sh / .command / .bat   三个平台的用户入口
+├── start.sh / .command / .bat       三个平台的用户入口
 ├── src/                             程序源码
 │   └── handsfree/managed_workspace.py  Herdr CLI/API 集成
 ├── scripts/install/                 安装脚本

@@ -81,13 +81,13 @@ create_linux_launcher() {
         'Type=Application' \
         'Name=解放单手' \
         'Comment=多终端并行自动回车控制台' \
-        "Exec=\"$ROOT_DIR/一键启动.sh\"" \
+        "Exec=\"$ROOT_DIR/start.sh\"" \
         'Icon=input-keyboard' \
         'Terminal=false' \
         'Categories=Utility;Development;' \
         > "$desktop_file"
     chmod +x "$desktop_file"
-    ln -sfn "$ROOT_DIR/一键启动.sh" "$bin_link"
+    ln -sfn "$ROOT_DIR/start.sh" "$bin_link"
     info "已创建应用菜单入口和命令：handsfree-enter"
 }
 
@@ -96,7 +96,7 @@ create_macos_launcher() {
     applications_dir="$HOME/Applications"
     app_link="$applications_dir/解放单手.command"
     mkdir -p "$applications_dir"
-    ln -sfn "$ROOT_DIR/一键启动.command" "$app_link"
+    ln -sfn "$ROOT_DIR/start.command" "$app_link"
     info "已创建：$app_link"
 }
 
@@ -105,7 +105,7 @@ install_python_if_needed
 case "$(uname -s)" in
     Linux) install_linux_dependencies ;;
     Darwin) ;;
-    *) fail "此脚本用于 Linux/macOS；Windows 请双击“一键启动.bat”。" ;;
+    *) fail "此脚本用于 Linux/macOS；Windows 请双击 start.bat。" ;;
 esac
 
 info "正在创建独立 Python 环境……"
@@ -137,12 +137,12 @@ else
     create_linux_launcher
 fi
 
-chmod +x "$ROOT_DIR/一键启动.sh" "$ROOT_DIR/一键启动.command" \
+chmod +x "$ROOT_DIR/start.sh" "$ROOT_DIR/start.command" \
     "$ROOT_DIR/scripts/install/linux_macos.sh" \
     "$ROOT_DIR/scripts/build/打包独立版.sh" \
     "$ROOT_DIR/scripts/build/制作跨电脑安装包.sh"
 
 info "安装完成。"
 if [[ "$LAUNCH_AFTER_INSTALL" -eq 1 ]]; then
-    exec "$ROOT_DIR/一键启动.sh"
+    exec "$ROOT_DIR/start.sh"
 fi

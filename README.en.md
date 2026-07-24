@@ -69,8 +69,8 @@ Then install Hands-Free Enter:
 ```bash
 git clone https://github.com/XiangQhello/codex-claude-auto-enter.git
 cd codex-claude-auto-enter
-chmod +x 一键启动.sh
-./一键启动.sh
+chmod +x start.sh
+./start.sh
 ```
 
 The launcher reuses a compatible Python/Conda environment when available and creates a local `.venv` otherwise. Override the interpreter with `HANDSFREE_PYTHON=/path/to/python`.

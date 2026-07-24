@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+# Cross-platform project launcher.
+
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 VENV_PYTHON="$ROOT_DIR/.venv/bin/python"
 INSTALL_SCRIPT="$ROOT_DIR/scripts/install/linux_macos.sh"

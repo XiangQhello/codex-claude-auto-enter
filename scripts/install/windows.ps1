@@ -20,7 +20,7 @@ if (Get-Command py -ErrorAction SilentlyContinue) {
             Sort-Object LastWriteTime -Descending |
             Select-Object -First 1
         if ($null -eq $Candidate) {
-            throw "Python 安装完成但当前脚本没有找到 python.exe，请重新运行一键启动.bat。"
+            throw "Python 安装完成但当前脚本没有找到 python.exe，请重新运行 start.bat。"
         }
         $PythonExe = $Candidate.FullName
         $PythonArgs = @()
@@ -44,7 +44,7 @@ $Desktop = [Environment]::GetFolderPath("Desktop")
 $ShortcutPath = Join-Path $Desktop "解放单手.lnk"
 $Shell = New-Object -ComObject WScript.Shell
 $Shortcut = $Shell.CreateShortcut($ShortcutPath)
-$Shortcut.TargetPath = Join-Path $Root "一键启动.bat"
+$Shortcut.TargetPath = Join-Path $Root "start.bat"
 $Shortcut.WorkingDirectory = $Root
 $Shortcut.Description = "多终端并行自动回车控制台"
 $Shortcut.Save()
